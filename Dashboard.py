@@ -1,7 +1,7 @@
 import streamlit as st
-import requests
 import pandas as pd
 import plotly.express as px
+import plotly.figure_factory as ff
 
 # =================== CONFIGURAÇÕES INICIAIS ===================
 st.set_page_config(
@@ -21,9 +21,8 @@ def formata_numero(valor, prefixo=''):
 # =================== CARREGAMENTO E TRATAMENTO DE DADOS ===================
 @st.cache_data
 def carregar_dados():
-    url = 'https://api.sheet2db.com/v1/9ade87a1-0fa4-4dab-b816-e2bc305b7f81'
-    response = requests.get(url)
-    df = pd.DataFrame.from_dict(response.json())
+    # Lê direto do arquivo Excel
+    df = pd.read_excel(r"C:\Users\Mariana\dashboard-rh\data\BaseFuncionarios.xlsx")
 
     hoje = pd.to_datetime("today").normalize()
 
@@ -43,13 +42,15 @@ def carregar_dados():
     df["Horas Extras"] = pd.to_numeric(df["Horas Extras"], errors="coerce")
     df["Ferias Acumuladas"] = pd.to_numeric(df["Ferias Acumuladas"], errors="coerce")
 
-    # Ajuste de colunas de data
-    df['Data de Nascimento'] = df['Data de Nascimento'].dt.date
-    df['Data de Contratacao'] = df['Data de Contratacao'].dt.date
-    df['Data de Demissao'] = df['Data de Demissao'].dt.date
+    # Ajuste de colunas de data para exibição
+    df['Data de Nascimento'] = pd.to_datetime(df['Data de Nascimento'], errors="coerce").dt.date
+    df['Data de Contratacao'] = pd.to_datetime(df['Data de Contratacao'], errors="coerce").dt.date
+    df['Data de Demissao'] = pd.to_datetime(df['Data de Demissao'], errors="coerce").dt.date
 
     return df, hoje
 
+
+# Chamada
 df, hoje = carregar_dados()
 
 
@@ -112,10 +113,24 @@ def mostrar_overview(df, hoje):
 def mostrar_graficos(df):
     st.subheader("📈 Gráficos")
 
-    # --- Mapa por Estado ---
+    # --- Prepara datasets auxiliares ---
     df_estado = df.groupby("Estado").size().reset_index(name="Qtd Funcionários")
-    geojson_url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+    media_salarial_area = df.groupby("Área")["Salario Base"].mean().sort_values(ascending=False).reset_index()
+    tempo_area = df.groupby("Área")["Tempo de Casa"].mean().reset_index()
+    status_estado = df.groupby(["Estado", "Status"]).size().reset_index(name="Qtd")
+    genero = df["Sexo"].value_counts().reset_index()
+    genero.columns = ["Sexo", "Qtd"]
 
+    # --- Contratações por ano ---
+    df['Ano Contratacao'] = pd.to_datetime(df['Data de Contratacao'], errors='coerce').dt.year
+    contratacoes_ano = df.groupby("Ano Contratacao").size().reset_index(name="Qtd Contratações")
+
+    # --- Distribuição por nível ---
+    nivel = df["Nível"].value_counts().reset_index()
+    nivel.columns = ["Nível", "Qtd"]
+
+    # --- Gráficos existentes ---
+    geojson_url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
     fig_mapa = px.choropleth(
         df_estado,
         geojson=geojson_url,
@@ -128,24 +143,113 @@ def mostrar_graficos(df):
     )
     fig_mapa.update_geos(scope="south america", projection_type="mercator")
 
-    st.plotly_chart(fig_mapa, use_container_width=True)
-
-    # --- Média Salarial por Área ---
-    media_salarial_area = df.groupby("Área")["Salario Base"].mean().sort_values(ascending=False).reset_index()
-    fig_media_salarial_area = px.line(
-        media_salarial_area.head(),
-        x='Área',
-        y='Salario Base',
-        markers=True,
-        title='Média Salarial por Área',
-        color_discrete_sequence=["#c97fd7"]
+    fig_status_estado = px.bar(
+        status_estado,
+        x="Estado",
+        y="Qtd",
+        color="Status",
+        barmode="stack",
+        title="Funcionários Ativos x Desligados por Estado",
+        color_discrete_map={
+            "Ativo": "#3B82F6",
+            "Desativado": "#F87171"
+        }
     )
-    st.plotly_chart(fig_media_salarial_area, use_container_width=True)
+
+    fig_media_salarial_area = px.line(
+    media_salarial_area,
+    x='Área',
+    y='Salario Base',
+    markers=True,
+    title='💼 Média Salarial por Área',
+    color_discrete_sequence=["#3B82F6"]  # Azul vibrante
+)
+
+    fig_media_salarial_area.update_traces(
+    line=dict(width=3),
+    marker=dict(size=8, symbol="circle", color="#1E40AF"),
+    hovertemplate='<b>%{x}</b><br>Salário: R$ %{y:,.2f}<extra></extra>'
+)
+
+    fig_tempo_area = px.bar(
+        tempo_area,
+        x="Área",
+        y="Tempo de Casa",
+        title="Tempo Médio de Casa por Área"
+    )
+
+    # --- Novos gráficos ---
+    top5_salarios = df.nlargest(5, "Salario Base")[["Nome Completo", "Salario Base"]]
+    fig_top5_salarios = px.bar(
+        top5_salarios,
+        x="Salario Base",
+        y="Nome Completo",
+        orientation="h",
+        title="Top 5 Salários por Funcionário",
+        color="Salario Base",
+        color_continuous_scale="Blues"
+    )
+
+    fig_genero = px.pie(
+        genero,
+        values="Qtd",
+        names="Sexo",
+        title="Funcionários por Gênero",
+        hole=0.3,  # transforma em rosca
+        color_discrete_sequence=["#3B82F6", "#F87171"]
+    )
+
+    fig_contratacoes = px.line(
+    contratacoes_ano,
+    x="Ano Contratacao",
+    y="Qtd Contratações",
+    title="Contratações por Ano",
+    markers=True,
+    color_discrete_sequence=["#60A5FA"]
+)
+
+    fig_contratacoes.update_traces(
+    line=dict(width=3),  # Linha mais grossa
+    marker=dict(size=8, symbol="circle", color="#1D4ED8")  # Marcadores mais visíveis
+)
+    
+    fig_nivel = px.pie(
+    nivel,
+    values="Qtd",
+    names="Nível",
+    title="Funcionários por Nível",
+    hole=0.4,  # Rosca mais elegante
+    color_discrete_sequence=["#1E3A8A", "#3B82F6", "#1D4ED8", "#93C5FD", "#BFDBFE"]
+)
+
+    # --- Organiza em duas colunas ---
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.plotly_chart(fig_mapa, use_container_width=True)
+        st.plotly_chart(fig_media_salarial_area, use_container_width=True)
+        st.plotly_chart(fig_top5_salarios, use_container_width=True)
+        st.plotly_chart(fig_contratacoes, use_container_width=True)
+
+    with col2:
+        st.plotly_chart(fig_status_estado, use_container_width=True)
+        st.plotly_chart(fig_tempo_area, use_container_width=True)
+        st.plotly_chart(fig_genero, use_container_width=True)
+        st.plotly_chart(fig_nivel, use_container_width=True)
 
 
 def mostrar_dados(df):
     st.subheader("📂 Dados Tratados")
     st.dataframe(df)
+
+    # Botão de download CSV
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Baixar dados em CSV",
+        data=csv,
+        file_name="dados_tratados.csv",
+        mime="text/csv"
+    )
 
 
 # =================== DASHBOARD PRINCIPAL ===================
