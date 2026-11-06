@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.figure_factory as ff
+from pathlib import Path
 
 # =================== CONFIGURAÇÕES INICIAIS ===================
 st.set_page_config(
@@ -21,8 +21,9 @@ def formata_numero(valor, prefixo=''):
 # =================== CARREGAMENTO E TRATAMENTO DE DADOS ===================
 @st.cache_data
 def carregar_dados():
-    # Lê direto do arquivo Excel
-    df = pd.read_excel(r"C:\Users\Mariana\dashboard-rh\data\BaseFuncionarios.xlsx")
+    # Lê o Excel da pasta data/ (caminho relativo, funciona em qualquer computador)
+    caminho = Path(__file__).parent / "data" / "BaseFuncionarios.xlsx"
+    df = pd.read_excel(caminho)
 
     hoje = pd.to_datetime("today").normalize()
 
@@ -226,16 +227,16 @@ def mostrar_graficos(df):
     col1, col2 = st.columns(2)
 
     with col1:
-        st.plotly_chart(fig_mapa, use_container_width=True)
-        st.plotly_chart(fig_media_salarial_area, use_container_width=True)
-        st.plotly_chart(fig_top5_salarios, use_container_width=True)
-        st.plotly_chart(fig_contratacoes, use_container_width=True)
+        st.plotly_chart(fig_mapa, width="stretch")
+        st.plotly_chart(fig_media_salarial_area, width="stretch")
+        st.plotly_chart(fig_top5_salarios, width="stretch")
+        st.plotly_chart(fig_contratacoes, width="stretch")
 
     with col2:
-        st.plotly_chart(fig_status_estado, use_container_width=True)
-        st.plotly_chart(fig_tempo_area, use_container_width=True)
-        st.plotly_chart(fig_genero, use_container_width=True)
-        st.plotly_chart(fig_nivel, use_container_width=True)
+        st.plotly_chart(fig_status_estado, width="stretch")
+        st.plotly_chart(fig_tempo_area, width="stretch")
+        st.plotly_chart(fig_genero, width="stretch")
+        st.plotly_chart(fig_nivel, width="stretch")
 
 
 def mostrar_dados(df):
