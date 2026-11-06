@@ -1,54 +1,62 @@
-# 📊 Dashboard de Vendas e Dados Brutos
+# 👥 Dashboard de RH
 
-Este projeto é uma aplicação interativa construída com **[Streamlit](https://streamlit.io/)** para análise e visualização de dados de vendas.  
+Aplicação interativa em **[Streamlit](https://streamlit.io/)** para análise da força de trabalho de uma empresa: quantas pessoas trabalham, quem saiu, quanto se paga e como a equipe está distribuída.
 
-O sistema consome dados de uma API pública fictícia (`https://labdados.com/produtos`) e apresenta:  
-- **Dashboard de Vendas**: visualizações interativas de receita, quantidade de vendas e desempenho dos vendedores.  
-- **Dados Brutos**: interface para explorar, filtrar e exportar os dados em formato CSV.  
+Os dados vêm de uma planilha de funcionários (`data/BaseFuncionarios.xlsx`) e passam por tratamento em **Pandas** antes de virar indicadores e gráficos em **Plotly**.
 
 ---
 
 ## 🚀 Funcionalidades
 
-### Dashboard de Vendas
-- Filtros por região, ano e vendedores.  
-- Visualização de **receita e quantidade de vendas** por:  
-  - Estado  
-  - Mês  
-  - Categoria de produto  
-  - Vendedores  
-- Gráficos interativos com **Plotly**.  
-- Métricas em tempo real.  
+O painel tem três abas:
 
-### Dados Brutos
-- Exibição da tabela completa de dados.  
-- Filtros avançados (produto, categoria, preço, frete, vendedor, data, avaliação, tipo de pagamento, etc.).  
-- Seleção de colunas para exibição.  
-- Exportação dos dados filtrados em **CSV**.  
+### 🔑 Overview
+- Total de funcionários, ativos e desligados.
+- Média salarial, idade média e tempo médio de casa.
+- Média de horas extras e de férias acumuladas, com uma leitura sobre produtividade e possíveis passivos trabalhistas.
 
----
+### 📈 Gráficos
+- Mapa de funcionários por estado.
+- Ativos x desligados por estado.
+- Média salarial e tempo médio de casa por área.
+- Top 5 salários.
+- Distribuição por gênero e por nível.
+- Contratações por ano.
 
-## 🛠️ Tecnologias Utilizadas
+### 📂 Dados Tratados
+- Tabela completa com as colunas calculadas.
+- Download dos dados em CSV.
 
-- [Python 3.10+](https://www.python.org/)  
-- [Streamlit](https://streamlit.io/)  
-- [Pandas](https://pandas.pydata.org/)  
-- [Plotly Express](https://plotly.com/python/plotly-express/)  
-- [Requests](https://docs.python-requests.org/)  
+## 🧹 Tratamento dos dados
 
+- Conversão das datas de nascimento, contratação e demissão.
+- Cálculo de **idade**, **tempo de casa** e **status** (ativo ou desligado, a partir da data de demissão).
+- Extração de **cidade** e **estado** a partir do endereço, com expressão regular.
+- Padronização de sexo (M/F → Masculino/Feminino) e conversão de colunas numéricas.
 
-## ▶️ Como executar o projeto
+## 🛠️ Tecnologias
+
+- Python
+- Streamlit
+- Pandas
+- Plotly Express
+- OpenPyXL (leitura do Excel)
+
+## ▶️ Como executar
 
 ```bash
-git clone https://github.com/maribarbalho/dashboard_vendas.git
-cd dashboard_vendas
+git clone https://github.com/maribarbalho/dashboard-rh.git
+cd dashboard-rh
 
 python -m venv .venv
-# Ativar ambiente virtual:
-# Linux/Mac: source .venv/bin/activate
 # Windows: .venv\Scripts\activate
+# Linux/Mac: source .venv/bin/activate
 
-# Após criação do ambiente virtual execute os comandos abaixo via terminal:
 pip install streamlit
 pip install -r requirements.txt
 streamlit run Dashboard.py
+```
+
+---
+
+**Mariana Barbalho** · Data Analytics · [Portfólio](https://maribarbalho.github.io/)
